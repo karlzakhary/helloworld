@@ -25,7 +25,7 @@ SECRET_KEY = 'ema&(=fwyo25$5zk23^@u^4$$)=pebglxp-g2^q7_&e^hfxr5s'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0.0.0.0']
 
 
 # Application definition
