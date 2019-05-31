@@ -1,58 +1,42 @@
-version: 2 # use CircleCI 2.0
-jobs: # A basic unit of work in a run
-  build: # runs not using Workflows must have a `build` job as entry point 
-    # directory where steps are run
-    working_directory: ~/helloworld
-    docker: # run the steps with Docker
-      # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
-      - image: circleci/python:3.6.4
-      steps:
+version: 2.1
+    executors:
+      docker-publisher:
+        environment:
+          IMAGE_NAME: jonathancardoso/building-on-ci
+        docker:
+          - image: circleci/buildpack-deps:stretch
+    jobs:
+      build:
+        executor: docker-publisher
+        steps:
           - checkout
           - setup_remote_docker
           - run:
               name: Build Docker image
-              command: docker build -t $IMAGE_NAME:latest .
+              command: |
+                docker build -t $IMAGE_NAME:latest .
+          - run:
+              name: Archive Docker image
+              command: docker save -o image.tar $IMAGE_NAME
+          - persist_to_workspace:
+              root: .
+              paths:
+                - ./image.tar
       publish-latest:
-        environment:
-          IMAGE_NAME: building-on-ci
-        docker:
-          - image: circleci/buildpack-deps:stretch
+        executor: docker-publisher
         steps:
+          - attach_workspace:
+              at: /tmp/workspace
           - setup_remote_docker
+          - run:
+              name: Load archived Docker image
+              command: docker load -i /tmp/workspace/image.tar
           - run:
               name: Publish Docker Image to Docker Hub
               command: |
                 echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
                 docker push $IMAGE_NAME:latest
-        environment: # environment variables for primary container
-          PIPENV_VENV_IN_PROJECT: true
-      # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
-    steps: # steps that comprise the `build` job
-      - checkout # check out source code to working directory
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
-      - restore_cache:
-      # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
-          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-      - run:
-          command: |
-            sudo pip install pipenv
-            pipenv install
-      - save_cache: # cache Python dependencies using checksum of Pipfile as the cache-key
-          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-          paths:
-            - ".venv"
-            - "/usr/local/bin"
-            - "/usr/local/lib/python3.6/site-packages"
-      - run:
-          command: |
-            pipenv run python manage.py test
-      - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-          path: test-results
-      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: test-results
-          destination: tr1
-     workflows:
+    workflows:
       version: 2
       build-master:
         jobs:
