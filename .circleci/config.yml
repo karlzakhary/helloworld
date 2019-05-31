@@ -6,6 +6,24 @@ jobs: # A basic unit of work in a run
     docker: # run the steps with Docker
       # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
       - image: circleci/python:3.6.4
+      steps:
+          - checkout
+          - setup_remote_docker
+          - run:
+              name: Build Docker image
+              command: docker build -t $IMAGE_NAME:latest .
+      publish-latest:
+        environment:
+          IMAGE_NAME: building-on-ci
+        docker:
+          - image: circleci/buildpack-deps:stretch
+        steps:
+          - setup_remote_docker
+          - run:
+              name: Publish Docker Image to Docker Hub
+              command: |
+                echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                docker push $IMAGE_NAME:latest
         environment: # environment variables for primary container
           PIPENV_VENV_IN_PROJECT: true
       # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
@@ -34,3 +52,17 @@ jobs: # A basic unit of work in a run
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: test-results
           destination: tr1
+     workflows:
+      version: 2
+      build-master:
+        jobs:
+          - build:
+              filters:
+                branches:
+                  only: master
+          - publish-latest:
+              requires:
+                - build
+              filters:
+                branches:
+                  only: master
