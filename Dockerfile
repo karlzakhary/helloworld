@@ -1,11 +1,17 @@
-FROM python:2.7.14
+# Pull base image
+FROM python:3.7-slim
 
-RUN mkdir /opt/hello_word/
-WORKDIR /opt/hello_word/
+# Set environment varibles
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-COPY requirements.txt .
-COPY dist/helloworld /opt/hello_word/
+# Set work directory
+WORKDIR /code
 
-EXPOSE 80
+# Install dependencies
+RUN pip install pipenv
+COPY Pipfile Pipfile.lock /code/
+RUN pipenv install --system
 
-CMD [ "./hello_world" ]
+# Copy project
+COPY . /code/
