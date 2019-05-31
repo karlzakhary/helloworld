@@ -4,7 +4,7 @@ executors:
     environment:
       IMAGE_NAME: karlzakhary/building-on-ci
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: circleci/python:2.7.14
 jobs:
   build:
     executor: docker-publisher
